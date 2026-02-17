@@ -13,9 +13,10 @@ export default function Dashboard() {
     const router = useRouter()
 
     const [loading, setLoading] = useState(true)
+    // SECURITY: Financial data must be aggregated on the server and protected by authorization
     const [dashboardData, setDashboardData] = useState({
         totalProducts: 0,
-        totalEarnings: 0,
+        totalEarnings: 0, // Sensitive: ensure RLS policies apply
         totalOrders: 0,
         ratings: [],
     })

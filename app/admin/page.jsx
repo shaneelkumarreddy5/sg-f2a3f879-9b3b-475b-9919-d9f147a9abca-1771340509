@@ -10,12 +10,14 @@ export default function AdminDashboard() {
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$'
 
     const [loading, setLoading] = useState(true)
+    // SECURITY: Dashboard data should be fetched via secure server-side aggregation
+    // Do not expose raw sensitive financial data in client state
     const [dashboardData, setDashboardData] = useState({
         products: 0,
-        revenue: 0,
+        revenue: 0, // Securely aggregated on server
         orders: 0,
         stores: 0,
-        allOrders: [],
+        allOrders: [], // Should only contain non-sensitive order summaries
     })
 
     const dashboardCardsData = [
