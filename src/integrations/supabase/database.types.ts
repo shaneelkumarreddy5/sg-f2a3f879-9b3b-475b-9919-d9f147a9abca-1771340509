@@ -426,6 +426,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          role: string | null
           updated_at: string | null
         }
         Insert: {
@@ -434,6 +435,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          role?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -442,6 +444,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          role?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -570,7 +573,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_cashback: { Args: { order_amount: number }; Returns: number }
+      create_order: {
+        Args: {
+          p_billing_address?: Json
+          p_items: Json
+          p_payment_method?: string
+          p_shipping_address: Json
+          p_total_amount: number
+          p_user_id: string
+        }
+        Returns: {
+          order_id: string
+          order_number: string
+        }[]
+      }
+      generate_order_number: { Args: never; Returns: string }
+      process_cashback: { Args: { order_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
