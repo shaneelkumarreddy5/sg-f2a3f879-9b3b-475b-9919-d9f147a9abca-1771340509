@@ -64,7 +64,7 @@ export const authService = {
       });
 
       if (error) {
-        return { user: null, error: { message: error.message, code: error.status?.toString() } };
+        return { user: null, error: { message: error.message, ...(error.status && { code: error.status?.toString() }) } };
       }
 
       const authUser = data.user ? {
@@ -92,7 +92,7 @@ export const authService = {
       });
 
       if (error) {
-        return { user: null, error: { message: error.message, code: error.status?.toString() } };
+        return { user: null, error: { message: error.message, ...(error.status && { code: error.status?.toString() }) } };
       }
 
       const authUser = data.user ? {
@@ -156,7 +156,7 @@ export const authService = {
       });
 
       if (error) {
-        return { user: null, error: { message: error.message, code: error.status?.toString() } };
+        return { user: null, error: { message: error.message, ...(error.status && { code: error.status?.toString() }) } };
       }
 
       const authUser = data.user ? {
