@@ -1,6 +1,5 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
-import type { Json } from "../integrations/supabase/database.types";
 
 // Type definitions for vendor operations
 type Store = Database['public']['Tables']['stores']['Row']
@@ -196,19 +195,31 @@ export const vendorService = {
     
     // Check if order contains vendor's products
     const hasVendorProducts = Array.isArray(order.order_items) && 
-      order.order_items.some((item: any) => item.products?.store_id === store.id)
+      order.order_items.some((item: { products?: { store_id: string } }) => 
+        item.products?.store_id === store.id
+      )
     
     if (!hasVendorProducts) {
       throw new Error('Not authorized to update this order')
     }
 
     // Update order status
+    const orderParams: {
+      p_order_id: string;
+      p_new_status: string;
+      p_admin_notes?: string;
+    } = {
+      p_order_id: orderId,
+      p_new_status: status
+    };
+
+    // Only add admin_notes if it exists
+    if (notes) {
+      orderParams.p_admin_notes = notes;
+    }
+
     const { data, error } = await supabase
-      .rpc('update_order_status', {
-        p_order_id: orderId,
-        p_new_status: status,
-        p_admin_notes: notes || undefined
-      })
+      .rpc('update_order_status', orderParams)
     
     if (error) throw error
     return data || false

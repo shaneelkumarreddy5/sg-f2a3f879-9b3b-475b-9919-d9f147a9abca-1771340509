@@ -103,7 +103,7 @@ export const storeService = {
         .insert([{
           user_id: userId,
           product_id: productId,
-          variant_id: variantId || undefined,
+          variant_id: variantId || null,
           quantity
         }])
         .select()
@@ -152,15 +152,28 @@ export const storeService = {
     payment_method?: 'COD' | 'ONLINE'
   }) {
     // Use database function for proper stock validation
+    const orderParams: {
+      p_user_id: string;
+      p_items: Json;
+      p_total_amount: number;
+      p_shipping_address: Json;
+      p_billing_address?: Json;
+      p_payment_method: string;
+    } = {
+      p_user_id: orderData.user_id,
+      p_items: orderData.items as unknown as Json,
+      p_total_amount: orderData.total_amount,
+      p_shipping_address: orderData.shipping_address as Json,
+      p_payment_method: orderData.payment_method || 'COD'
+    };
+
+    // Only add billing_address if it exists
+    if (orderData.billing_address) {
+      orderParams.p_billing_address = orderData.billing_address as Json;
+    }
+
     const { data, error } = await supabase
-      .rpc('create_order', {
-        p_user_id: orderData.user_id,
-        p_items: orderData.items as unknown as Json,
-        p_total_amount: orderData.total_amount,
-        p_shipping_address: orderData.shipping_address as Json,
-        p_billing_address: (orderData.billing_address as Json) || undefined,
-        p_payment_method: orderData.payment_method || 'COD'
-      })
+      .rpc('create_order', orderParams)
     
     if (error) throw error
     return data

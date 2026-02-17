@@ -53,15 +53,28 @@ export const orderService = {
     }
 
     // Create order using database function (handles stock validation)
+    const orderParams: {
+      p_user_id: string;
+      p_items: Json;
+      p_total_amount: number;
+      p_shipping_address: Json;
+      p_billing_address?: Json;
+      p_payment_method: string;
+    } = {
+      p_user_id: userId,
+      p_items: orderItems as unknown as Json,
+      p_total_amount: totalAmount,
+      p_shipping_address: shippingAddress as Json,
+      p_payment_method: paymentMethod
+    };
+
+    // Only add billing_address if it exists
+    if (billingAddress) {
+      orderParams.p_billing_address = billingAddress as Json;
+    }
+
     const { data, error } = await supabase
-      .rpc('create_order', {
-        p_user_id: userId,
-        p_items: orderItems as unknown as Json,
-        p_total_amount: totalAmount,
-        p_shipping_address: shippingAddress as Json,
-        p_billing_address: (billingAddress as Json) || undefined,
-        p_payment_method: paymentMethod
-      })
+      .rpc('create_order', orderParams)
     
     if (error) throw error
 
@@ -69,8 +82,8 @@ export const orderService = {
     await this.clearCart(userId)
 
     return {
-      orderId: data?.[0]?.order_id || '',
-      orderNumber: data?.[0]?.order_number || undefined
+      orderId: data?.[0]?.order_id as string || '',
+      orderNumber: data?.[0]?.order_number as string | undefined
     }
   },
 

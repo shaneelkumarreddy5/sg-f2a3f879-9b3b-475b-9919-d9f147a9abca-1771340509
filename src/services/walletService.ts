@@ -1,6 +1,5 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
-import type { Json } from "../integrations/supabase/database.types";
 
 // Type definitions for wallet operations
 type Wallet = Database['public']['Tables']['wallets']['Row']
