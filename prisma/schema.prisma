@@ -11,11 +11,12 @@ datasource db {
 
 // Required for creating a User: id, name, email, image, cart (optional JSON string)
 model User {
-    id    String @id
-    name  String
-    email String
-    image String
-    cart  Json   @default("{}")
+    id            String    @id @default(cuid()) // SECURITY: Use CUID for secure, non-guessable IDs
+    name          String
+    email         String    @unique // SECURITY: Enforce uniqueness to prevent account conflicts
+    emailVerified DateTime? // SECURITY: Track email verification status
+    image         String
+    cart          Json      @default("{}")
 
     // Relations
     ratings     Rating[]
