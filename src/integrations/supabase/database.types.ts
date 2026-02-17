@@ -568,6 +568,161 @@ export type Database = {
           },
         ]
       }
+      vendor_settlements: {
+        Row: {
+          cashback_amount: number
+          created_at: string | null
+          gross_amount: number
+          id: string
+          net_payout: number
+          order_id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          platform_commission: number
+          processed_at: string | null
+          status: string
+          store_id: string
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          cashback_amount?: number
+          created_at?: string | null
+          gross_amount: number
+          id?: string
+          net_payout: number
+          order_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          platform_commission?: number
+          processed_at?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          cashback_amount?: number
+          created_at?: string | null
+          gross_amount?: number
+          id?: string
+          net_payout?: number
+          order_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          platform_commission?: number
+          processed_at?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_settlements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_settlements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_settlements_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          transaction_type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          transaction_type: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          transaction_type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          total_cashback: number | null
+          total_spent: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          total_cashback?: number | null
+          total_spent?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          total_cashback?: number | null
+          total_spent?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -588,8 +743,25 @@ export type Database = {
           order_number: string
         }[]
       }
+      create_user_wallet: { Args: { p_user_id: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       process_cashback: { Args: { order_id: string }; Returns: boolean }
+      process_cashback_to_wallet: {
+        Args: { p_cashback_id: string }
+        Returns: boolean
+      }
+      update_order_status: {
+        Args: {
+          p_admin_notes?: string
+          p_new_status: string
+          p_order_id: string
+        }
+        Returns: boolean
+      }
+      use_wallet_balance: {
+        Args: { p_amount: number; p_order_id: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
