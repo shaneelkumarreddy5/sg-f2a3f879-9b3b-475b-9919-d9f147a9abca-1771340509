@@ -1,6 +1,6 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
-import type { Json } from "database.types";
+import type { Json } from "../integrations/supabase/database.types";
 
 // Type definitions for vendor operations
 type Store = Database['public']['Tables']['stores']['Row']
@@ -195,9 +195,8 @@ export const vendorService = {
     if (orderError || !order) throw new Error('Order not found')
     
     // Check if order contains vendor's products
-    const hasVendorProducts = order.order_items?.some(
-      (item: any) => item.products?.store_id === store.id
-    )
+    const hasVendorProducts = Array.isArray(order.order_items) && 
+      order.order_items.some((item: any) => item.products?.store_id === store.id)
     
     if (!hasVendorProducts) {
       throw new Error('Not authorized to update this order')
@@ -208,7 +207,7 @@ export const vendorService = {
       .rpc('update_order_status', {
         p_order_id: orderId,
         p_new_status: status,
-        p_admin_notes: notes || null
+        p_admin_notes: notes || undefined
       })
     
     if (error) throw error

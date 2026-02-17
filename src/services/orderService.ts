@@ -1,6 +1,6 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
-import type { Json } from "database.types";
+import type { Json } from "../integrations/supabase/database.types";
 import { cashbackService } from './cashbackService'
 import { walletService } from './walletService'
 
@@ -59,7 +59,7 @@ export const orderService = {
         p_items: orderItems as unknown as Json,
         p_total_amount: totalAmount,
         p_shipping_address: shippingAddress as Json,
-        p_billing_address: billingAddress as Json || null,
+        p_billing_address: (billingAddress as Json) || undefined,
         p_payment_method: paymentMethod
       })
     
@@ -69,8 +69,8 @@ export const orderService = {
     await this.clearCart(userId)
 
     return {
-      orderId: data?.[0]?.order_id as string || '',
-      orderNumber: data?.[0]?.order_number as string | undefined
+      orderId: data?.[0]?.order_id || '',
+      orderNumber: data?.[0]?.order_number || undefined
     }
   },
 
