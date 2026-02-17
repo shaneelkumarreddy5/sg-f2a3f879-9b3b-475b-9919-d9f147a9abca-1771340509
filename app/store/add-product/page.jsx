@@ -3,6 +3,7 @@ import { assets } from "@/assets/assets"
 import Image from "next/image"
 import { useState } from "react"
 import { toast } from "react-hot-toast"
+import { productSchema, validateFile } from "@/lib/validation" // SECURITY: Import validation
 
 export default function StoreAddProduct() {
 
@@ -23,8 +24,31 @@ export default function StoreAddProduct() {
         setProductInfo({ ...productInfo, [e.target.name]: e.target.value })
     }
 
+    const handleFileChange = (e, key) => {
+        const file = e.target.files[0];
+        if (file) {
+            try {
+                // SECURITY: Validate file type and size
+                validateFile(file);
+                setImages({ ...images, [key]: file });
+            } catch (error) {
+                toast.error(error.message);
+                e.target.value = ""; // Reset input
+            }
+        }
+    }
+
     const onSubmitHandler = async (e) => {
         e.preventDefault()
+
+        // SECURITY: Validate product data against Zod schema
+        const result = productSchema.safeParse(productInfo);
+
+        if (!result.success) {
+            const errorMessage = result.error.errors[0].message;
+            throw new Error(errorMessage);
+        }
+
         // Logic to add a product
         
     }
@@ -39,7 +63,7 @@ export default function StoreAddProduct() {
                 {Object.keys(images).map((key) => (
                     <label key={key} htmlFor={`images${key}`}>
                         <Image width={300} height={300} className='h-15 w-auto border border-slate-200 rounded cursor-pointer' src={images[key] ? URL.createObjectURL(images[key]) : assets.upload_area} alt="" />
-                        <input type="file" accept='image/*' id={`images${key}`} onChange={e => setImages({ ...images, [key]: e.target.files[0] })} hidden />
+                        <input type="file" accept='image/*' id={`images${key}`} onChange={(e) => handleFileChange(e, key)} hidden />
                     </label>
                 ))}
             </div>

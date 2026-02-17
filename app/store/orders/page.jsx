@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Loading from "@/components/Loading"
 import { orderDummyData } from "@/assets/assets"
+import { toast } from "sonnerie"
 
 export default function StoreOrders() {
     const [orders, setOrders] = useState([])
@@ -16,6 +17,25 @@ export default function StoreOrders() {
     }
 
     const updateOrderStatus = async (orderId, status) => {
+        // SECURITY: Define valid status transitions to prevent manipulation
+        const validTransitions = {
+            ORDER_PLACED: ['PROCESSING'],
+            PROCESSING: ['SHIPPED'],
+            SHIPPED: ['DELIVERED'],
+            DELIVERED: []
+        };
+
+        const currentOrder = orders.find(o => o.id === orderId);
+        
+        if (currentOrder) {
+            const allowed = validTransitions[currentOrder.status];
+            if (!allowed.includes(status)) {
+                // In a real app, this should also be validated on the server
+                toast.error(`Invalid status transition from ${currentOrder.status} to ${status}`);
+                return;
+            }
+        }
+
         // Logic to update the status of an order
 
 

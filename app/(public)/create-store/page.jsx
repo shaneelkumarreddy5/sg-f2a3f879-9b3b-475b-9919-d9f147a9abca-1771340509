@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import toast from "react-hot-toast"
 import Loading from "@/components/Loading"
+import { storeSchema, validateFile } from "@/lib/validation" // SECURITY: Import validation
 
 export default function CreateStore() {
 
@@ -26,6 +27,20 @@ export default function CreateStore() {
         setStoreInfo({ ...storeInfo, [e.target.name]: e.target.value })
     }
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            try {
+                // SECURITY: Validate file type and size before setting state
+                validateFile(file);
+                setStoreInfo({ ...storeInfo, image: file });
+            } catch (error) {
+                toast.error(error.message);
+                e.target.value = ""; // Reset input
+            }
+        }
+    }
+
     const fetchSellerStatus = async () => {
         // Logic to check if the store is already submitted
 
@@ -35,6 +50,23 @@ export default function CreateStore() {
 
     const onSubmitHandler = async (e) => {
         e.preventDefault()
+        
+        // SECURITY: Validate form data against Zod schema before submission
+        const result = storeSchema.safeParse({
+            username: storeInfo.username,
+            name: storeInfo.name,
+            description: storeInfo.description,
+            email: storeInfo.email,
+            contact: storeInfo.contact,
+            address: storeInfo.address,
+        });
+
+        if (!result.success) {
+            // Display first validation error
+            const errorMessage = result.error.errors[0].message;
+            throw new Error(errorMessage); // Handled by toast.promise
+        }
+
         // Logic to submit the store details
 
 
@@ -58,7 +90,7 @@ export default function CreateStore() {
                         <label className="mt-10 cursor-pointer">
                             Store Logo
                             <Image src={storeInfo.image ? URL.createObjectURL(storeInfo.image) : assets.upload_area} className="rounded-lg mt-2 h-16 w-auto" alt="" width={150} height={100} />
-                            <input type="file" accept="image/*" onChange={(e) => setStoreInfo({ ...storeInfo, image: e.target.files[0] })} hidden />
+                            <input type="file" accept="image/*" onChange={handleFileChange} hidden />
                         </label>
 
                         <p>Username</p>
