@@ -1,0 +1,260 @@
+import { supabase } from '../integrations/supabase/client'
+import type { Database } from '../integrations/supabase/types'
+
+// Type definitions for vendor operations
+type Store = Database['public']['Tables']['stores']['Row']
+type Order = Database['public']['Tables']['orders']['Row']
+type VendorSettlement = Database['public']['Tables']['vendor_settlements']['Row']
+type Product = Database['public']['Tables']['products']['Row']
+
+// Glonni Vendor Service - Multi-vendor marketplace logic
+export const vendorService = {
+  // Create vendor store (requires approval)
+  async createStore(storeData: {
+    userId: string
+    name: string
+    description: string
+    slug: string
+    logo?: string
+    banner?: string
+    address?: any
+    contact?: any
+    settings?: any
+  }): Promise<Store> {
+    const { data, error } = await supabase
+      .from('stores')
+      .insert([{
+        user_id: storeData.userId,
+        name: storeData.name,
+        description: storeData.description,
+        slug: storeData.slug,
+        logo: storeData.logo || null,
+        banner: storeData.banner || null,
+        address: storeData.address || null,
+        contact: storeData.contact || null,
+        settings: storeData.settings || {},
+        is_approved: false // Requires admin approval
+      }])
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Get vendor's store
+  async getVendorStore(userId: string): Promise<Store | null> {
+    const { data, error } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') throw error
+    return data
+  },
+
+  // Get vendor's products
+  async getVendorProducts(userId: string): Promise<Product[]> {
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        categories(name, slug),
+        order_items(quantity, price)
+      `)
+      .eq('store_id', (
+        SELECT id FROM public.stores WHERE user_id = userId
+      ))
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  // Get vendor's orders (only orders containing their products)
+  async getVendorOrders(userId: string): Promise<Order[]> {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        profiles(full_name, email),
+        order_items(
+          quantity,
+          price,
+          products!inner(
+            store_id,
+            name,
+            images
+          )
+        )
+      `)
+      .contains('order_items', [
+        { products: { store_id: (
+          SELECT id FROM public.stores WHERE user_id = userId
+        ) } }
+      ])
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  // Get vendor settlements (payouts)
+  async getVendorSettlements(userId: string): Promise<VendorSettlement[]> {
+    const { data, error } = await supabase
+      .from('vendor_settlements')
+      .select(`
+        *,
+        orders(order_number, total_amount, created_at),
+        stores(name, slug)
+      `)
+      .eq('vendor_id', userId)
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  // Calculate vendor earnings
+  async calculateVendorEarnings(userId: string): Promise<{
+    totalRevenue: number
+    pendingPayouts: number
+    paidPayouts: number
+    commissionPaid: number
+  }> {
+    const { data, error } = await supabase
+      .from('vendor_settlements')
+      .select('gross_amount, net_payout, platform_commission, status')
+      .eq('vendor_id', userId)
+    
+    if (error) throw error
+
+    const earnings = {
+      totalRevenue: 0,
+      pendingPayouts: 0,
+      paidPayouts: 0,
+      commissionPaid: 0
+    }
+
+    data?.forEach(settlement => {
+      earnings.totalRevenue += settlement.gross_amount
+      earnings.commissionPaid += settlement.platform_commission
+      
+      switch (settlement.status) {
+        case 'PENDING':
+          earnings.pendingPayouts += settlement.net_payout
+          break
+        case 'PAID':
+          earnings.paidPayouts += settlement.net_payout
+          break
+      }
+    })
+
+    return earnings
+  },
+
+  // Update order status (vendor can update their own orders)
+  async updateOrderStatus(orderId: string, status: string, vendorId: string, notes?: string): Promise<boolean> {
+    // First verify this order contains vendor's products
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items(
+          products!inner(
+            store_id
+          )
+        )
+      `)
+      .eq('id', orderId)
+      .single()
+    
+    if (orderError || !order) throw new Error('Order not found')
+    
+    // Check if order contains vendor's products
+    const hasVendorProducts = order.order_items?.some(
+      item => item.products?.store_id === (
+        SELECT id FROM public.stores WHERE user_id = vendorId LIMIT 1
+      )
+    )
+    
+    if (!hasVendorProducts) {
+      throw new Error('Not authorized to update this order')
+    }
+
+    // Update order status
+    const { data, error } = await supabase
+      .rpc('update_order_status', {
+        p_order_id: orderId,
+        p_new_status: status,
+        p_admin_notes: notes
+      })
+    
+    if (error) throw error
+    return data || false
+  },
+
+  // Request payout (vendor can request when eligible)
+  async requestPayout(settlementId: string, vendorId: string): Promise<VendorSettlement> {
+    const { data, error } = await supabase
+      .from('vendor_settlements')
+      .update({ 
+        status: 'PROCESSING',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', settlementId)
+      .eq('vendor_id', vendorId)
+      .eq('status', 'PENDING')
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Get vendor dashboard statistics
+  async getVendorStats(userId: string): Promise<{
+    totalProducts: number
+    activeProducts: number
+    totalOrders: number
+    pendingOrders: number
+    deliveredOrders: number
+    totalRevenue: number
+    averageRating: number
+  }> {
+    const storeId = await supabase
+      .from('stores')
+      .select('id, rating')
+      .eq('user_id', userId)
+      .single()
+    
+    if (storeId.error) throw storeId.error
+
+    // Get products count
+    const { data: products } = await supabase
+      .from('products')
+      .select('is_active')
+      .eq('store_id', storeId.data.id)
+    
+    // Get orders count
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('order_status')
+      .contains('order_items', [
+        { products: { store_id: storeId.data.id } }
+      ])
+
+    const stats = {
+      totalProducts: products?.length || 0,
+      activeProducts: products?.filter(p => p.is_active).length || 0,
+      totalOrders: orders?.length || 0,
+      pendingOrders: orders?.filter(o => o.order_status === 'PAID' || o.order_status === 'SHIPPED').length || 0,
+      deliveredOrders: orders?.filter(o => o.order_status === 'DELIVERED').length || 0,
+      totalRevenue: 0,
+      averageRating: storeId.data.rating || 0
+    }
+
+    return stats
+  }
+}

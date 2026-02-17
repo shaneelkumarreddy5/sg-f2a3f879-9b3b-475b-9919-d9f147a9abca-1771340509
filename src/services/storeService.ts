@@ -123,7 +123,10 @@ export const storeService = {
       .eq('user_id', userId)
     
     if (error) throw error
-    return data || []
+    return data?.filter(item => item.products !== null).map(item => ({
+      ...item,
+      products: item.products!
+    })) || []
   },
 
   async removeFromCart(userId: string, cartItemId: string) {
