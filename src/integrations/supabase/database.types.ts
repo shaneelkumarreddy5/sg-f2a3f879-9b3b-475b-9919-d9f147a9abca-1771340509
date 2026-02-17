@@ -750,6 +750,10 @@ export type Database = {
         Args: { p_cashback_id: string }
         Returns: boolean
       }
+      restore_product_stock: {
+        Args: { p_product_id: string; p_quantity: number }
+        Returns: undefined
+      }
       update_order_status: {
         Args: {
           p_admin_notes?: string

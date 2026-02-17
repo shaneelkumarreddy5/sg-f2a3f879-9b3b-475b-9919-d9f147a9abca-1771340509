@@ -74,7 +74,7 @@ export const authService = {
       } : null;
 
       return { user: authUser, error: null };
-    } catch (err) {
+    } catch {
       return { 
         user: null, 
         error: { message: "An unexpected error occurred during sign up" } 
@@ -102,7 +102,7 @@ export const authService = {
       } : null;
 
       return { user: authUser, error: null };
-    } catch (err) {
+    } catch {
       return { 
         user: null, 
         error: { message: "An unexpected error occurred during sign in" } 
@@ -120,7 +120,7 @@ export const authService = {
       }
 
       return { error: null };
-    } catch (err) {
+    } catch {
       return { 
         error: { message: "An unexpected error occurred during sign out" } 
       };
@@ -139,7 +139,7 @@ export const authService = {
       }
 
       return { error: null };
-    } catch (err) {
+    } catch {
       return { 
         error: { message: "An unexpected error occurred during password reset" } 
       };
@@ -166,7 +166,7 @@ export const authService = {
       } : null;
 
       return { user: authUser, error: null };
-    } catch (err) {
+    } catch {
       return { 
         user: null, 
         error: { message: "An unexpected error occurred during email confirmation" } 

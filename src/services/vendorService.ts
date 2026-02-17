@@ -23,18 +23,18 @@ export const vendorService = {
   }): Promise<Store> {
     const { data, error } = await supabase
       .from('stores')
-      .insert([{
+      .insert({
         user_id: storeData.userId,
         name: storeData.name,
         description: storeData.description,
         slug: storeData.slug,
         logo: storeData.logo || null,
         banner: storeData.banner || null,
-        address: storeData.address || null,
-        contact: storeData.contact || null,
+        address: storeData.address ? JSON.stringify(storeData.address) : null,
+        contact: storeData.contact ? JSON.stringify(storeData.contact) : null,
         settings: storeData.settings || {},
         is_approved: false // Requires admin approval
-      }])
+      })
       .select()
       .single()
     
@@ -105,7 +105,7 @@ export const vendorService = {
           )
         )
       `)
-      .like('order_items', '%store_id":"' + store.id + '"%')
+      .eq('order_items.products.store_id', store.id)
       .order('created_at', { ascending: false })
     
     if (error) throw error
@@ -207,7 +207,7 @@ export const vendorService = {
       .rpc('update_order_status', {
         p_order_id: orderId,
         p_new_status: status,
-        p_admin_notes: notes
+        p_admin_notes: notes || null
       })
     
     if (error) throw error
@@ -248,7 +248,9 @@ export const vendorService = {
       .eq('user_id', userId)
       .single()
     
-    if (storeError) throw storeError.error
+    if (storeError) {
+      throw storeError.error || new Error('Failed to get vendor store')
+    }
 
     if (!storeData) {
       return {

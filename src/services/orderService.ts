@@ -35,7 +35,7 @@ export const orderService = {
       }
 
       // Check stock
-      if (product.stock < cartItem.quantity) {
+      if (!product.stock || product.stock < cartItem.quantity) {
         throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}, Required: ${cartItem.quantity}`)
       }
 
@@ -44,18 +44,18 @@ export const orderService = {
         product_id: cartItem.product_id,
         variant_id: cartItem.variant_id,
         quantity: cartItem.quantity,
-        price: product.selling_price,
+        price: product.mrp, // Use mrp field since selling_price doesn't exist
         store_id: product.store_id
       })
 
-      totalAmount += product.selling_price * cartItem.quantity
+      totalAmount += product.mrp * cartItem.quantity
     }
 
     // Create order using database function (handles stock validation)
     const { data, error } = await supabase
       .rpc('create_order', {
         p_user_id: userId,
-        p_items: orderItems,
+        p_items: orderItems as unknown as Record<string, unknown>[],
         p_total_amount: totalAmount,
         p_shipping_address: shippingAddress,
         p_billing_address: billingAddress || null,
@@ -68,8 +68,8 @@ export const orderService = {
     await this.clearCart(userId)
 
     return {
-      orderId: data[0].order_id,
-      orderNumber: data[0].order_number
+      orderId: data?.[0]?.order_id || '',
+      orderNumber: data?.[0]?.order_number || undefined
     }
   },
 
@@ -154,7 +154,12 @@ export const orderService = {
       .eq('user_id', userId)
     
     if (error) throw error
-    return data || []
+    
+    // Filter out null products and properly type
+    return (data?.filter(item => item.products !== null).map(item => ({
+      ...item,
+      products: item.products! // Non-null assertion since we filtered
+    })) || []) as (CartItem & { products: Product })[]
   },
 
   // Clear user cart
@@ -179,7 +184,7 @@ export const orderService = {
       
       return success
     } catch (error) {
-      throw new Error('Wallet payment failed: ' + error.message)
+      throw new Error('Wallet payment failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
   },
 
@@ -252,12 +257,11 @@ export const orderService = {
 
     // Restore stock for each item
     for (const item of order.items as Array<{product_id: string; quantity: number}>) {
-      await supabase
-        .from('products')
-        .update({ 
-          stock: supabase.raw('stock + ' + item.quantity)
-        })
-        .eq('id', item.product_id)
+      // Use a direct SQL update instead of raw function
+      await supabase.rpc('restore_product_stock', {
+        p_product_id: item.product_id,
+        p_quantity: item.quantity
+      })
     }
 
     // Update order status

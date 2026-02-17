@@ -123,10 +123,12 @@ export const storeService = {
       .eq('user_id', userId)
     
     if (error) throw error
-    return data?.filter(item => item.products !== null).map(item => ({
+    
+    // Filter out null products and properly type
+    return (data?.filter(item => item.products !== null).map(item => ({
       ...item,
-      products: item.products!
-    })) || []
+      products: item.products! // Non-null assertion since we filtered
+    })) || []) as (CartItem & { products: Product })[]
   },
 
   async removeFromCart(userId: string, cartItemId: string) {
@@ -152,7 +154,7 @@ export const storeService = {
     const { data, error } = await supabase
       .rpc('create_order', {
         p_user_id: orderData.user_id,
-        p_items: orderData.items,
+        p_items: orderData.items as unknown as Record<string, unknown>[],
         p_total_amount: orderData.total_amount,
         p_shipping_address: orderData.shipping_address,
         p_billing_address: orderData.billing_address || null,

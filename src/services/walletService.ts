@@ -85,13 +85,13 @@ export const walletService = {
   // Check if user has sufficient balance
   async hasSufficientBalance(userId: string, amount: number): Promise<boolean> {
     const wallet = await this.getUserWallet(userId)
-    return wallet ? wallet.balance >= amount : false
+    return wallet ? (wallet.balance || 0) >= amount : false
   },
 
   // Get wallet balance
   async getBalance(userId: string): Promise<number> {
     const wallet = await this.getUserWallet(userId)
-    return wallet ? wallet.balance : 0
+    return wallet ? (wallet.balance || 0) : 0
   },
 
   // Process cashback to wallet (after delivery confirmation)
@@ -127,7 +127,7 @@ export const walletService = {
     await supabase
       .from('wallets')
       .update({
-        balance: wallet.balance + amount,
+        balance: (wallet.balance || 0) + amount,
         updated_at: new Date().toISOString()
       })
       .eq('id', wallet.id)
