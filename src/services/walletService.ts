@@ -20,10 +20,8 @@ export const walletService = {
     
     // Create wallet if not exists
     if (!data) {
-      const { data: newWallet, error: createError } = await supabase
+      await supabase
         .rpc('create_user_wallet', { p_user_id: userId })
-      
-      if (createError) throw createError
       
       // Fetch the newly created wallet
       const { data: wallet } = await supabase

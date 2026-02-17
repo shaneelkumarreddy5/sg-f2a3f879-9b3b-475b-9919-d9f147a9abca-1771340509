@@ -17,9 +17,9 @@ export const vendorService = {
     slug: string
     logo?: string
     banner?: string
-    address?: any
-    contact?: any
-    settings?: any
+    address?: Record<string, unknown>
+    contact?: Record<string, unknown>
+    settings?: Record<string, unknown>
   }): Promise<Store> {
     const { data, error } = await supabase
       .from('stores')
@@ -56,6 +56,15 @@ export const vendorService = {
 
   // Get vendor's products
   async getVendorProducts(userId: string): Promise<Product[]> {
+    // First get vendor's store
+    const { data: store } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+
+    if (!store) return []
+
     const { data, error } = await supabase
       .from('products')
       .select(`
@@ -63,9 +72,7 @@ export const vendorService = {
         categories(name, slug),
         order_items(quantity, price)
       `)
-      .eq('store_id', (
-        SELECT id FROM public.stores WHERE user_id = userId
-      ))
+      .eq('store_id', store.id)
       .order('created_at', { ascending: false })
     
     if (error) throw error
@@ -74,6 +81,15 @@ export const vendorService = {
 
   // Get vendor's orders (only orders containing their products)
   async getVendorOrders(userId: string): Promise<Order[]> {
+    // Get vendor's store
+    const { data: store } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+
+    if (!store) return []
+
     const { data, error } = await supabase
       .from('orders')
       .select(`
@@ -89,11 +105,7 @@ export const vendorService = {
           )
         )
       `)
-      .contains('order_items', [
-        { products: { store_id: (
-          SELECT id FROM public.stores WHERE user_id = userId
-        ) } }
-      ])
+      .like('order_items', '%store_id":"' + store.id + '"%')
       .order('created_at', { ascending: false })
     
     if (error) throw error
@@ -156,7 +168,16 @@ export const vendorService = {
 
   // Update order status (vendor can update their own orders)
   async updateOrderStatus(orderId: string, status: string, vendorId: string, notes?: string): Promise<boolean> {
-    // First verify this order contains vendor's products
+    // Get vendor's store
+    const { data: store } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('user_id', vendorId)
+      .single()
+
+    if (!store) throw new Error('Vendor store not found')
+
+    // Verify this order contains vendor's products
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -174,9 +195,7 @@ export const vendorService = {
     
     // Check if order contains vendor's products
     const hasVendorProducts = order.order_items?.some(
-      item => item.products?.store_id === (
-        SELECT id FROM public.stores WHERE user_id = vendorId LIMIT 1
-      )
+      item => item.products?.store_id === store.id
     )
     
     if (!hasVendorProducts) {
@@ -223,27 +242,37 @@ export const vendorService = {
     totalRevenue: number
     averageRating: number
   }> {
-    const storeId = await supabase
+    const { data: storeData, error: storeError } = await supabase
       .from('stores')
       .select('id, rating')
       .eq('user_id', userId)
       .single()
     
-    if (storeId.error) throw storeId.error
+    if (storeError) throw storeError.error
+
+    if (!storeData) {
+      return {
+        totalProducts: 0,
+        activeProducts: 0,
+        totalOrders: 0,
+        pendingOrders: 0,
+        deliveredOrders: 0,
+        totalRevenue: 0,
+        averageRating: 0
+      }
+    }
 
     // Get products count
     const { data: products } = await supabase
       .from('products')
       .select('is_active')
-      .eq('store_id', storeId.data.id)
+      .eq('store_id', storeData.id)
     
     // Get orders count
     const { data: orders } = await supabase
       .from('orders')
       .select('order_status')
-      .contains('order_items', [
-        { products: { store_id: storeId.data.id } }
-      ])
+      .like('order_items', '%store_id":"' + storeData.id + '"%')
 
     const stats = {
       totalProducts: products?.length || 0,
@@ -252,7 +281,7 @@ export const vendorService = {
       pendingOrders: orders?.filter(o => o.order_status === 'PAID' || o.order_status === 'SHIPPED').length || 0,
       deliveredOrders: orders?.filter(o => o.order_status === 'DELIVERED').length || 0,
       totalRevenue: 0,
-      averageRating: storeId.data.rating || 0
+      averageRating: storeData.rating || 0
     }
 
     return stats

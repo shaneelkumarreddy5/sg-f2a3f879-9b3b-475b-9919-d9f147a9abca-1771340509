@@ -11,7 +11,12 @@ type Product = Database['public']['Tables']['products']['Row']
 // Glonni Order Service - Complete order lifecycle with cashback integration
 export const orderService = {
   // Create order from cart with Glonni business logic
-  async createOrderFromCart(userId: string, shippingAddress: any, billingAddress?: any, paymentMethod: 'COD' | 'ONLINE' = 'COD'): Promise<{ orderId: string; orderNumber: string }> {
+  async createOrderFromCart(
+    userId: string, 
+    shippingAddress: Record<string, unknown>, 
+    billingAddress?: Record<string, unknown>, 
+    paymentMethod: 'COD' | 'ONLINE' = 'COD'
+  ): Promise<{ orderId: string; orderNumber: string }> {
     // Get user's cart
     const cartItems = await this.getUserCart(userId)
     
@@ -246,7 +251,7 @@ export const orderService = {
     }
 
     // Restore stock for each item
-    for (const item of order.items as any[]) {
+    for (const item of order.items as Array<{product_id: string; quantity: number}>) {
       await supabase
         .from('products')
         .update({ 

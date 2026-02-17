@@ -142,10 +142,10 @@ export const storeService = {
   // Order management with Glonni business logic
   async createOrder(orderData: {
     user_id: string
-    items: any[]
+    items: Array<{product_id: string; variant_id?: string; quantity: number; price: number; store_id: string}>
     total_amount: number
-    shipping_address: any
-    billing_address?: any
+    shipping_address: Record<string, unknown>
+    billing_address?: Record<string, unknown>
     payment_method?: 'COD' | 'ONLINE'
   }) {
     // Use the database function for proper stock validation

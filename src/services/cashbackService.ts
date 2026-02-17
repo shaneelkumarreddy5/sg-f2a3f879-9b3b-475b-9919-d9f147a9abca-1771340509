@@ -3,7 +3,6 @@ import type { Database } from '../integrations/supabase/types'
 
 // Type definitions for cashback operations
 type Cashback = Database['public']['Tables']['cashback']['Row']
-type Order = Database['public']['Tables']['orders']['Row']
 
 // Glonni Cashback Service - USP: Instant cashback after delivery confirmation
 export const cashbackService = {
