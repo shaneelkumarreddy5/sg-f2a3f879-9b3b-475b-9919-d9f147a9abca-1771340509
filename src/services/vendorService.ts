@@ -1,5 +1,6 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
+import type { Json } from "database.types";
 
 // Type definitions for vendor operations
 type Store = Database['public']['Tables']['stores']['Row']
@@ -195,7 +196,7 @@ export const vendorService = {
     
     // Check if order contains vendor's products
     const hasVendorProducts = order.order_items?.some(
-      item => item.products?.store_id === store.id
+      (item: any) => item.products?.store_id === store.id
     )
     
     if (!hasVendorProducts) {
@@ -249,7 +250,7 @@ export const vendorService = {
       .single()
     
     if (storeError) {
-      throw storeError.error || new Error('Failed to get vendor store')
+      throw new Error('Failed to get vendor store')
     }
 
     if (!storeData) {

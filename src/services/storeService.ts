@@ -1,5 +1,6 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
+import type { Json } from "database.types";
 
 // Type definitions for better type safety
 type Store = Database['public']['Tables']['stores']['Row']
@@ -150,14 +151,14 @@ export const storeService = {
     billing_address?: Record<string, unknown>
     payment_method?: 'COD' | 'ONLINE'
   }) {
-    // Use the database function for proper stock validation
+    // Create order using database function for proper stock validation
     const { data, error } = await supabase
       .rpc('create_order', {
         p_user_id: orderData.user_id,
-        p_items: orderData.items as unknown as Record<string, unknown>[],
+        p_items: orderData.items as unknown as Json,
         p_total_amount: orderData.total_amount,
-        p_shipping_address: orderData.shipping_address,
-        p_billing_address: orderData.billing_address || null,
+        p_shipping_address: orderData.shipping_address as Json,
+        p_billing_address: orderData.billing_address as Json || null,
         p_payment_method: orderData.payment_method || 'COD'
       })
     

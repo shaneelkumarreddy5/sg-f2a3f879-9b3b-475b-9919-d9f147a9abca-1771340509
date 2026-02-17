@@ -1,5 +1,6 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
+import type { Json } from "database.types";
 
 // Type definitions for cashback operations
 type Cashback = Database['public']['Tables']['cashback']['Row']

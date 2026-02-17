@@ -1,5 +1,6 @@
 import { supabase } from '../integrations/supabase/client'
 import type { Database } from '../integrations/supabase/types'
+import type { Json } from "database.types";
 import { cashbackService } from './cashbackService'
 import { walletService } from './walletService'
 
@@ -55,10 +56,10 @@ export const orderService = {
     const { data, error } = await supabase
       .rpc('create_order', {
         p_user_id: userId,
-        p_items: orderItems as unknown as Record<string, unknown>[],
+        p_items: orderItems as unknown as Json,
         p_total_amount: totalAmount,
-        p_shipping_address: shippingAddress,
-        p_billing_address: billingAddress || null,
+        p_shipping_address: shippingAddress as Json,
+        p_billing_address: billingAddress as Json || null,
         p_payment_method: paymentMethod
       })
     
@@ -68,8 +69,8 @@ export const orderService = {
     await this.clearCart(userId)
 
     return {
-      orderId: data?.[0]?.order_id || '',
-      orderNumber: data?.[0]?.order_number || undefined
+      orderId: data?.[0]?.order_id as string || '',
+      orderNumber: data?.[0]?.order_number as string | undefined
     }
   },
 
@@ -114,7 +115,7 @@ export const orderService = {
     const { data, error } = await query.single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data
+    return data as Order | null
   },
 
   // Update order status (admin/vendor function)
