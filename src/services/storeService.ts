@@ -82,7 +82,7 @@ export const storeService = {
       .select('*')
       .eq('user_id', userId)
       .eq('product_id', productId)
-      .eq('variant_id', variantId || null)
+      .eq('variant_id', variantId || '')
       .single()
     
     if (existingItem) {

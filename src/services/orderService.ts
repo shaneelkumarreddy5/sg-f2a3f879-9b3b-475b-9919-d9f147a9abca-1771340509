@@ -83,7 +83,7 @@ export const orderService = {
 
     return {
       orderId: data?.[0]?.order_id as string || '',
-      orderNumber: data?.[0]?.order_number as string | undefined
+      orderNumber: (data?.[0]?.order_number as string | undefined) || undefined
     }
   },
 
@@ -137,7 +137,7 @@ export const orderService = {
       .rpc('update_order_status', {
         p_order_id: orderId,
         p_new_status: status,
-        p_admin_notes: adminNotes || null
+        p_admin_notes: adminNotes || undefined
       })
     
     if (error) throw error
