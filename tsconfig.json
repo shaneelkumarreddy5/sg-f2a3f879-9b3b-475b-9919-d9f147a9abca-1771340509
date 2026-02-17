@@ -44,6 +44,12 @@
     "allowJs": true,
     "noEmit": true,
     "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "plugins": [
